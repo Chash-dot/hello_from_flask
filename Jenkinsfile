@@ -1,40 +1,36 @@
-node any {
-    def app
 
+pipeline {
+    agent any
+        def app
 
-    stage('Clone repository') {
-      
+        stage('Clone repository') {
+        
 
+            checkout scm
+        }
 
-        checkout scm
-    }
+        stage('Build image') {
+    
+        app = docker.build("chash07/test")
+        }
 
+        stage('Test image') {
+    
 
-    stage('Build image') {
-  
-       app = docker.build("chash-dot/test")
-    }
+            app.inside {
+                sh 'echo "Tests passed"'
+            }
+        }
 
-
-    stage('Test image') {
-  
-
-
-        app.inside {
-            sh 'echo "Tests passed"'
-        }
-    }
-
-
-    stage('Push image') {
-        
-        docker.withRegistry('https://registry.hub.docker.com', 'dockerhub') {
-            app.push("${env.BUILD_NUMBER}")
-        }
-    }
-    
-    stage('Trigger ManifestUpdate') {
-                echo "triggering updatemanifestjob"
-                build job: 'updatemanifest', parameters: [string(name: 'DOCKERTAG', value: env.BUILD_NUMBER)]
-        }
+        stage('Push image') {
+            
+            docker.withRegistry('https://registry.hub.docker.com', 'dockerhub') {
+                app.push("${env.BUILD_NUMBER}")
+            }
+        }
+        
+        stage('Trigger ManifestUpdate') {
+                    echo "triggering updatemanifestjob"
+                    build job: 'updatemanifest', parameters: [string(name: 'DOCKERTAG', value: env.BUILD_NUMBER)]
+            }
 }
